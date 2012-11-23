@@ -1,4 +1,4 @@
-/*
+﻿/*
  * This file is part of Flowplayer, http://flowplayer.org
  *
  * By: Anssi Piirainen, <support@flowplayer.org>
@@ -335,7 +335,10 @@ package org.flowplayer.controls.scrubber {
 		override protected function getClickTargets(enabled:Boolean):Array {
 			_enabled = enabled;
 			var targets:Array = [_bufferBar, _progressBar];
-			if (! enabled || _allowRandomSeek) {
+			// NathanOsullivan 2012-11-23
+			// if 'this' is not pushed, you cant scroll while paused in Chrome for some reason
+			//if (! enabled || _allowRandomSeek) {
+			if (! enabled || _allowRandomSeek || true) {
 				targets.push(this);
 			}
 			return targets;
