@@ -13,6 +13,10 @@ package org.flowplayer.rtmp {
     import flash.events.Event;
 import flash.utils.setTimeout;
 
+CONFIG::WIDEVINE {
+    import com.widevine.WvNetStream;
+    import com.widevine.WvNetConnection;
+    }
 CONFIG::FLASH_10_1 {
     import flash.net.GroupSpecifier;
     }
@@ -70,6 +74,13 @@ CONFIG::FLASH_10_1 {
         private var _hasNext:Boolean;
 
         override protected function createNetStream(connection:NetConnection):NetStream {
+            CONFIG::WIDEVINE {
+                if (clip.extension == "wvm") {
+                    log.debug("createNetStream(), (widevine)");
+                    return new WidevineNetStream(connection as WvNetConnection);
+                }
+            }
+
             CONFIG::FLASH_10_1 {
                 if (clip.getCustomProperty("p2pGroupSpec")) {
                     return createP2PStream(connection);
@@ -97,6 +108,11 @@ CONFIG::FLASH_10_1 {
         override protected function onNetStatus(event:NetStatusEvent) : void {
             log.info("onNetStatus(), code: " + event.info.code + ", paused? " + paused + ", seeking? " + seeking);
             switch(event.info.code){
+				// Widevine sends Seek.Complete after its finished seeking; 
+				// until this is received the time is not correct
+				case "NetStream.Seek.Complete":
+					dispatchEvent(new ClipEvent(ClipEventType.SEEK, time));
+					break;
                 case "NetStream.Play.Start":
                     if (_stepping) return;
                     if (paused){
@@ -206,6 +222,12 @@ CONFIG::FLASH_10_1 {
 
 		override protected function getConnectionProvider(clip : Clip) : ConnectionProvider {
 
+			CONFIG::WIDEVINE {
+				if (clip.extension == "wvm") {
+					_rtmpConnectionProvider = new WidevineConnectionProvider(_config);
+					return _rtmpConnectionProvider;
+				}
+			}
 			if (clip.getCustomProperty("rtmpSubscribe") || _config.subscribe) {
 				log.debug("using FCSubscribe to connect");
 				if (!_subscribingConnectionProvider) {
