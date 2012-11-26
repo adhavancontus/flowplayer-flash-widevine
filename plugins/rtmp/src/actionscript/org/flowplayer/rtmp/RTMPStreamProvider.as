@@ -108,11 +108,6 @@ CONFIG::FLASH_10_1 {
         override protected function onNetStatus(event:NetStatusEvent) : void {
             log.info("onNetStatus(), code: " + event.info.code + ", paused? " + paused + ", seeking? " + seeking);
             switch(event.info.code){
-				// Widevine sends Seek.Complete after its finished seeking; 
-				// until this is received the time is not correct
-				case "NetStream.Seek.Complete":
-					dispatchEvent(new ClipEvent(ClipEventType.SEEK, time));
-					break;
                 case "NetStream.Play.Start":
                     if (_stepping) return;
                     if (paused){
@@ -224,7 +219,9 @@ CONFIG::FLASH_10_1 {
 
 			CONFIG::WIDEVINE {
 				if (clip.extension == "wvm") {
-					_rtmpConnectionProvider = new WidevineConnectionProvider(_config);
+					if (!_rtmpConnectionProvider) {
+						_rtmpConnectionProvider = new WidevineConnectionProvider(_config);
+					}
 					return _rtmpConnectionProvider;
 				}
 			}

@@ -7,7 +7,7 @@
 	
 	<property file="${devkit-dir}/plugin-build.properties" />
 	<import file="${devkit-dir}/plugin-build.xml"/>
-    <property name="compiler-defines" value="-define+=CONFIG::FLASH_10_1,'true'"/>
+    <property name="compiler-defines" value="-define+=CONFIG::FLASH_10_1,'true' -define+=CONFIG::WIDEVINE,'true'"/>
 	
 	<property name="shortname" value="rtmp" />
     <property name="basename" value="flowplayer.${shortname}" />

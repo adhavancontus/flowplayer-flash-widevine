@@ -11,37 +11,26 @@
 	public class WidevineNetStream extends WvNetStream {
 		protected var log:Log = new Log(this);
 		private var rePause:Boolean;
-		//private var _streamProvider:NetStreamControllingStreamProvider;
-		//private var _player:Flowplayer;
 		private var _pauseWaitTimer:Timer;
 		private var _pauseRequired:Boolean;
 		
 		public function WidevineNetStream(connection:WvNetConnection):void
 		{
 			super(connection);
-			//_streamProvider = streamProvider;
-			//_player = player;
 			addEventListener(NetStatusEvent.NET_STATUS, onNetStatus);
 		}
 		
 		private function onNetStatus(event:NetStatusEvent):void {
-            log.info("_onNetStatus, code: " + event.info.code + ", isPlaying: " + getPlayStatus() + ", time: " + getCurrentMediaTime());
+            log.info("_onNetStatus, code: " + event.info.code + ", details: " + event.info.details + ", description: " + event.info.description + ", isPlaying: " + getPlayStatus() + ", time: " + getCurrentMediaTime());
 			
 			switch (event.info.code) {
-				case "NetStream.Seek.Complete":
+				case "NetStream.Buffer.Full":
 				if(rePause) {
 					log.info("repausing");
 					super.pause();
 					rePause = false;
 				}
-					break;
-					
-				/*case "NetStream.Play.Complete":
-					log.info("Jumping back to start");
-					rePause = true;
-					super.resume();
-					super.seek(0);
-					break;*/
+				break;
 			}
 		}
 		
@@ -59,10 +48,6 @@
 		
 		public override function resume():void 
 		{
-			/*if (getPlayStatus() && getPlayScale() == 1) {
-				log.info("ignoring resume()");
-				return;
-			}*/
 			log.info("resume()");
 			super.resume();
 		}
