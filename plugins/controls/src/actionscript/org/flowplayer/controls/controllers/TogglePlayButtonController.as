@@ -23,11 +23,40 @@ package org.flowplayer.controls.controllers {
 
 	import flash.display.DisplayObjectContainer;
 	
+	import org.flowplayer.model.PluginModel;
+	import org.flowplayer.model.PluginEvent;
+	
 	public class TogglePlayButtonController extends AbstractToggleButtonController {
 
 		public function TogglePlayButtonController() {
 			super();
 		}
+		
+		private var _slowMotionInfo:Object;
+		private var _slowMotionPlugin:PluginModel;
+		
+		override protected function addPlayerListeners():void {
+			super.addPlayerListeners();
+			
+			_slowMotionPlugin = _player.pluginRegistry.getPlugin("slowmotion") as PluginModel;
+            if (_slowMotionPlugin) {
+                log.debug("found plugin " + _slowMotionPlugin);
+                _slowMotionPlugin.onPluginEvent(onSlowMotionEvent);
+            }
+		}
+		
+		private function onSlowMotionEvent(event:PluginEvent):void {
+            log.debug("onSlowMotionEvent()");
+            _slowMotionInfo = event.info2;
+			
+			isDown = !isTrickPlay;
+			log.debug("Setting isDown to " + isDown);
+        }
+		
+		private function get isTrickPlay():Boolean {
+            return _slowMotionInfo && _slowMotionInfo["isTrickPlay"]; 
+        }
+
 		
 		override public function get name():String {
 			return "play";
@@ -65,7 +94,10 @@ package org.flowplayer.controls.controllers {
 		}
 		
 		override protected function onButtonClicked(event:ButtonEvent):void {
-			_player.toggle();
+			if (_player.isPlaying() && isTrickPlay)
+				_slowMotionPlugin.pluginObject["normal"]();
+			else
+				_player.toggle();
 		}
 		
 		// handle state
