@@ -1,4 +1,4 @@
-/*    
+﻿/*    
  *    Author: Anssi Piirainen, <api@iki.fi>
  *
  *    Copyright (c) 2009-2011 Flowplayer Oy
@@ -91,7 +91,8 @@ package org.flowplayer.slowmotion {
             log.debug("Found RTMP provider " + _provider);
 
             _controller = _config.serverType == "wowza" ? new WowzaSlowMotion(_model, _player.playlist, _provider, _providerName)
-                    : new FMSSlowMotion(_model, _player.playlist, _provider, _providerName);
+					: (_config.serverType == "widevine" ? new WidevineSlowMotion(_model, _player.playlist, _provider, _providerName)
+                    : new FMSSlowMotion(_model, _player.playlist, _provider, _providerName));
             _provider.timeProvider = _controller.getTimeProvider();
 
 			var resetSpeed:Function = function(event:ClipEvent):void {
@@ -149,6 +150,13 @@ package org.flowplayer.slowmotion {
             var fwdButtonController:SlowMotionFwdController = new SlowMotionFwdController(this);
             var FFwdButtonController:SlowMotionFfwdController = new SlowMotionFfwdController(this);
 
+
+			// widevine doesnt support stepping, so we only add the fast buttons
+			if (_config.serverType == "widevine") {
+				container.addWidget(FBwdButtonController, "stop", false);
+				container.addWidget(FFwdButtonController, "play", false);
+				return;
+			}
 
 			container.addWidget(FBwdButtonController, "stop", false);
 			container.addWidget(bwdButtonController, "fastBackward", false);
