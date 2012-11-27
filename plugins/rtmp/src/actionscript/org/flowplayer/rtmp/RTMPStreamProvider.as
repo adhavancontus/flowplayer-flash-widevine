@@ -77,7 +77,7 @@ CONFIG::FLASH_10_1 {
             CONFIG::WIDEVINE {
                 if (clip.extension == "wvm") {
                     log.debug("createNetStream(), (widevine)");
-                    return new WidevineNetStream(connection as WvNetConnection);
+                    return new WidevineNetStream(connection as WvNetConnection, clip);
                 }
             }
 

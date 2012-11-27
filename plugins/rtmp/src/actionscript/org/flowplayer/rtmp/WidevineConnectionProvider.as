@@ -10,8 +10,6 @@ package org.flowplayer.rtmp {
 	import org.flowplayer.util.Log;
 	
 	import flash.events.NetStatusEvent;
-	import org.flowplayer.model.ClipEvent;
-	import org.flowplayer.model.ClipEventType;
 	import flash.net.NetConnection;		
 
 	import com.widevine.WvNetConnection;
@@ -29,7 +27,6 @@ package org.flowplayer.rtmp {
         private var _provider:NetStreamControllingStreamProvider;
         private var _connectionArgs:Array;
         private var _clip:Clip;
-		private var _seeking:Boolean;
 	private var _netConnectionUrl:String;
 
         public function WidevineConnectionProvider(config:Config) {
@@ -117,22 +114,9 @@ package org.flowplayer.rtmp {
 		}
 
         public function handeNetStatusEvent(event:NetStatusEvent):Boolean {
-			
 			// Time is wrong at start of notify; so we dont send it
 			if (event.info.code == "NetStream.Seek.Notify") {
-				log.debug("Starting seek");
-				_seeking = true;
 				return false;
-			}
-			
-			
-			// On buffer full after a seek the time is correct
-			if (event.info.code == "NetStream.Buffer.Full" && _seeking) {
-				log.debug("Completing seek");
-
-				var ns:WvNetStream = _clip.getNetStream() as WvNetStream;
-				_clip.dispatchEvent(new ClipEvent(ClipEventType.SEEK, ns.getCurrentMediaTime()));
-				_seeking = false;
 			}
 				
             return true;
