@@ -65,7 +65,7 @@ package org.flowplayer.slowmotion {
 			
 			var playScale:Number = netStream["getPlayScale"]();
 			// SlowMotionInfo(clip:Clip, isTrickPlay:Boolean, forwardDirection:Boolean, timeOffset:Number, speedMultiplier:Number) {
-			return new SlowMotionInfo(playlist.current, playScale != 1, playScale >= 1, 0, playScale);
+			return new SlowMotionInfo(playlist.current, playScale != 1, playScale >= 1, 0, Math.abs(playScale));
         }
     }
 }

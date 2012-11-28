@@ -222,8 +222,8 @@ package org.flowplayer.slowmotion {
         }
 
         private function setFastPlay(multiplier:Number, forward:Boolean):void {
-			showSpeedIndicator(multiplier, forward);
-            _controller.trickPlay(multiplier, forward);
+			_controller.trickPlay(multiplier, forward);
+			showSpeedIndicator(_controller.getInfo(null).speedMultiplier, forward);
         }
 
         private function setProvider(model:PluginModel):void {
