@@ -9,7 +9,9 @@
 	import flash.utils.Timer;
 	import org.flowplayer.model.ClipEvent;
 	import org.flowplayer.model.ClipEventType;
-
+	import org.flowplayer.view.Flowplayer;
+	import org.flowplayer.model.PluginModel;
+	
 	import flash.utils.setTimeout;
 	
 	public class WidevineNetStream extends WvNetStream {
@@ -19,12 +21,45 @@
 		private var _pauseRequired:Boolean;
 		private var _clip:Clip;
 		private var _seeking:Boolean;
+		private var _player:Flowplayer;
 		
-		public function WidevineNetStream(connection:WvNetConnection, clip:Clip):void
+		private var _indicator:PluginModel;
+		private var _indicatorTimer:Timer;
+
+		
+		public function WidevineNetStream(connection:WvNetConnection, clip:Clip, player:Flowplayer):void
 		{
 			super(connection);
 			_clip = clip;
+			_player = player;
 			addEventListener(NetStatusEvent.NET_STATUS, onNetStatus);
+			
+			lookupWidevineIndicator();
+		}
+		
+		private function lookupWidevineIndicator():void
+		{
+			_indicator = _player.pluginRegistry.getPlugin("widevineIndicator") as PluginModel;
+            log.debug("lookupWidevineIndicator() " + _indicator ? "found indicator" : "indicator not present");
+
+			_indicatorTimer = new Timer(10000, 1);
+			_indicatorTimer.addEventListener(TimerEvent.TIMER, function(e:TimerEvent):void { 
+				if ( _indicator )
+					_player.hidePlugin(_indicator.name);
+			});
+		}
+		
+		private function showIndicator(label:String):void
+		{
+			if ( ! _indicator )
+				return;
+
+			_indicator.pluginObject.html = label;
+
+			_indicatorTimer.reset();
+			_player.showPlugin(_indicator.name);
+
+			_indicatorTimer.start();
 		}
 		
 		private function onNetStatus(event:NetStatusEvent):void {
@@ -49,6 +84,15 @@
 					log.debug("setting timeout for endOfClip");
 					setTimeout(endOfClip, Math.max(100, (bufferLength)*1000));
 				break;
+				
+				
+				case "NetStream.Wv.EmmFailed":
+				case "NetStream.Wv.EmmError":
+				case "NetStream.Wv.EmmExpired":
+				case "NetStream.Wv.DcpStop":
+				case "NetStream.Wv.DcpAlert":
+					showIndicator( event.info.code + ": " + event.info.details);
+					break;
 			}
 		}
 		
