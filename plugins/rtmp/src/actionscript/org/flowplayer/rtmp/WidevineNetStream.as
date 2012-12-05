@@ -25,6 +25,9 @@
 		
 		private var _indicator:PluginModel;
 		private var _indicatorTimer:Timer;
+		
+		private var _canBufferFix:Boolean;
+		private var _bufferFixTimer:Timer;
 
 		
 		public function WidevineNetStream(connection:WvNetConnection, clip:Clip, player:Flowplayer):void
@@ -35,6 +38,13 @@
 			addEventListener(NetStatusEvent.NET_STATUS, onNetStatus);
 			
 			lookupWidevineIndicator();
+			
+			_canBufferFix = true;
+			_bufferFixTimer = new Timer(5000, 1);
+			_bufferFixTimer.addEventListener(TimerEvent.TIMER, function(e:TimerEvent):void { 
+				log.info("Seeking to " + getCurrentMediaTime() + " to try and fix empty buffer");											
+				seek(getCurrentMediaTime());
+			});
 		}
 		
 		private function lookupWidevineIndicator():void
@@ -59,14 +69,24 @@
 			_indicatorTimer.reset();
 			_player.showPlugin(_indicator.name);
 
-			_indicatorTimer.start();
+			// Show failure message permanently, as they require reloading
+			//_indicatorTimer.start();
 		}
 		
 		private function onNetStatus(event:NetStatusEvent):void {
             log.info("_onNetStatus, code: " + event.info.code + ", details: " + event.info.details + ", description: " + event.info.description + ", isPlaying: " + getPlayStatus() + ", time: " + getCurrentMediaTime() + ", bufferLength: " + bufferLength + ", buffertime: " + bufferTime + ", backBufferLength: " + backBufferLength + ", backBuffertime: " + backBufferTime);
 			
 			switch (event.info.code) {
+				case "NetStream.Buffer.Empty":
+					if (_canBufferFix) {
+						log.debug("Starting buffer fix timer");
+						_bufferFixTimer.start();
+						_canBufferFix = false;
+					}
+					break;
 				case "NetStream.Buffer.Full":
+					_canBufferFix = true;
+					_bufferFixTimer.stop();
 				if(rePause) {
 					log.debug("repausing");
 					super.pause();
@@ -84,14 +104,24 @@
 					log.debug("setting timeout for endOfClip");
 					setTimeout(endOfClip, Math.max(100, (bufferLength)*1000));
 				break;
+
+				case "NetStream.Video.DimensionChange":
+					_clip.dispatchEvent(new ClipEvent(ClipEventType.CLIP_RESIZED));
+					break;
 				
+				case "NetStream.Wv.EmmSuccess":
+					_clip.dispatchEvent(new ClipEvent(ClipEventType.CLIP_RESIZED));
+					_clip.dispatchNetStreamEvent("onEmmSuccess", event.info);
+					break;
 				
 				case "NetStream.Wv.EmmFailed":
 				case "NetStream.Wv.EmmError":
 				case "NetStream.Wv.EmmExpired":
 				case "NetStream.Wv.DcpStop":
 				case "NetStream.Wv.DcpAlert":
-					showIndicator( event.info.code + ": " + event.info.details);
+					var name:String = event.info.code.substr(13);
+					_clip.dispatchNetStreamEvent("on" + name, event.info);
+					showIndicator( name + ": " + event.info.details);
 					break;
 			}
 		}
