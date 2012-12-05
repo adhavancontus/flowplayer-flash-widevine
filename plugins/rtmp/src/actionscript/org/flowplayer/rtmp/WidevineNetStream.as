@@ -42,6 +42,8 @@
 			_canBufferFix = true;
 			_bufferFixTimer = new Timer(5000, 1);
 			_bufferFixTimer.addEventListener(TimerEvent.TIMER, function(e:TimerEvent):void { 
+				if (!getPlayStatus())
+					return;
 				log.info("Seeking to " + getCurrentMediaTime() + " to try and fix empty buffer");											
 				seek(getCurrentMediaTime());
 			});
@@ -99,9 +101,16 @@
 				}
 				break;
 				
+				case "NetStream.Play.Start":
+					_canBufferFix = true;
+					_bufferFixTimer.stop();
+					break;
+				
 				// we get this near the end of a fast-forward/rewind
 				case "NetStream.Play.Complete":
 					log.debug("setting timeout for endOfClip");
+					_canBufferFix = false;
+					_bufferFixTimer.stop();
 					setTimeout(endOfClip, Math.max(100, (bufferLength)*1000));
 				break;
 
