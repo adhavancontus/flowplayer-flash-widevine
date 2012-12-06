@@ -28,6 +28,9 @@
 		
 		private var _canBufferFix:Boolean;
 		private var _bufferFixTimer:Timer;
+		private var _replayFixTimer:Timer;
+
+		private var _endOfClip:Boolean;
 
 		
 		public function WidevineNetStream(connection:WvNetConnection, clip:Clip, player:Flowplayer):void
@@ -46,6 +49,13 @@
 					return;
 				log.info("Seeking to " + getCurrentMediaTime() + " to try and fix empty buffer");											
 				seek(getCurrentMediaTime());
+			});
+
+			_replayFixTimer = new Timer(1000, 1);
+			_replayFixTimer.addEventListener(TimerEvent.TIMER, function(e:TimerEvent):void { 
+				log.info("Seeking to 0 to try and fix replay");											
+				resume();	
+				seek(0);
 			});
 		}
 		
@@ -87,8 +97,11 @@
 					}
 					break;
 				case "NetStream.Buffer.Full":
+					// buffer will never be full unless we have skipped away from the end successfully
+					_endOfClip = false;
 					_canBufferFix = true;
 					_bufferFixTimer.stop();
+					_replayFixTimer.stop();
 				if(rePause) {
 					log.debug("repausing");
 					super.pause();
@@ -100,18 +113,14 @@
 					_seeking = false;
 				}
 				break;
-				
-				case "NetStream.Play.Start":
-					_canBufferFix = true;
-					_bufferFixTimer.stop();
-					break;
-				
-				// we get this near the end of a fast-forward/rewind
+
+				// we get this near the end of a fast-forward/rewind, but do not get buffer.empty
+				// so have to set a timer and wait
 				case "NetStream.Play.Complete":
 					log.debug("setting timeout for endOfClip");
+					// empty will arrive at end of 1x playback, ignore it
 					_canBufferFix = false;
-					_bufferFixTimer.stop();
-					setTimeout(endOfClip, Math.max(100, (bufferLength)*1000));
+					setTimeout(endOfClip, Math.max(100, (bufferLength-0.1)*1000));
 				break;
 
 				case "NetStream.Video.DimensionChange":
@@ -137,7 +146,9 @@
 		
 		private function endOfClip():void
 		{
-			log.debug("emitting finish, pause, and seek");
+			log.debug("endOfClip()");
+
+			_endOfClip = true;
 			_clip.dispatchBeforeEvent(new ClipEvent(ClipEventType.FINISH));
 			super.pause();
 			_clip.dispatchEvent(new ClipEvent(ClipEventType.FINISH));
@@ -160,10 +171,23 @@
 		
 		public override function resume():void 
 		{
+			if (_endOfClip) {
+				log.debug("resuming from end, starting replay fix timer");
+				_replayFixTimer.start();
+			}
+
 			_pauseRequired = false;
 			rePause = false;
 			log.info("resume()");
 			super.resume();
+
+		}
+
+		public override function getCurrentMediaTime():Number
+		{
+			if (_endOfClip)
+				return _clip.duration;
+			return super.getCurrentMediaTime();
 		}
 		
         private function onPauseWait(event:TimerEvent):void {
